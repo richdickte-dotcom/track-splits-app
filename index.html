@@ -1,0 +1,66 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Track Splits Calculator</title>
+  <script src="https://cdn.tailwindcss.com"></script>
+  <script src="https://unpkg.com/react@18/umd/react.production.min.js"></script>
+  <script src="https://unpkg.com/react-dom@18/umd/react-dom.production.min.js"></script>
+  <script src="https://unpkg.com/@babel/standalone/babel.min.js"></script>
+</head>
+<body class="bg-slate-900 text-white min-h-screen p-4">
+  <div id="root"></div>
+
+  <script type="text/text/babel">
+    function App() {
+      const [lapTime, setLapTime] = React.useState('');
+      const [splits, setSplits] = React.useState([]);
+
+      const addSplit = (e) => {
+        e.preventDefault();
+        if (!lapTime) return;
+        setSplits([...splits, lapTime]);
+        setLapTime('');
+      };
+
+      return (
+        <div className="max-w-md mx-auto py-8 font-sans">
+          <h1 className="text-3xl font-bold text-emerald-400 mb-6 text-center">⏱️ Track Splits</h1>
+          
+          <form onSubmit={addSplit} className="mb-6 flex gap-2">
+            <input 
+              type="text" 
+              placeholder="Lap time (e.g., 68.5 or 1:08.5)" 
+              value={lapTime}
+              onChange={(e) => setLapTime(e.target.value)}
+              className="flex-1 p-3 rounded-lg bg-slate-800 text-white border border-slate-700 focus:outline-none focus:border-emerald-500"
+            />
+            <button type="submit" className="bg-emerald-500 hover:bg-emerald-600 font-bold px-5 py-3 rounded-lg text-slate-950 transition">
+              Add
+            </button>
+          </form>
+
+          <div className="bg-slate-800 rounded-lg p-4 border border-slate-700">
+            <h2 className="text-xl font-semibold mb-3 text-slate-200">Recorded Laps ({splits.length})</h2>
+            {splits.length === 0 ? (
+              <p className="text-slate-400 text-sm">No split times entered yet.</p>
+            ) : (
+              <ul className="divide-y divide-slate-700">
+                {splits.map((split, i) => (
+                  <li key={i} className="py-2 flex justify-between">
+                    <span className="text-slate-400">Lap {i + 1}</span>
+                    <span className="font-mono font-bold text-emerald-300">{split}</span>
+                  </li>
+                ))}
+              </ul>
+            )}
+          </div>
+        </div>
+      );
+    }
+
+    ReactDOM.createRoot(document.getElementById('root')).render(<App />);
+  </script>
+</body>
+</html>
