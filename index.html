@@ -4,63 +4,114 @@
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>Track Splits Calculator</title>
-  <script src="https://cdn.tailwindcss.com"></script>
-  <script src="https://unpkg.com/react@18/umd/react.production.min.js"></script>
-  <script src="https://unpkg.com/react-dom@18/umd/react-dom.production.min.js"></script>
-  <script src="https://unpkg.com/@babel/standalone/babel.min.js"></script>
+  <style>
+    body {
+      font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+      background-color: #0f172a;
+      color: #ffffff;
+      margin: 0;
+      padding: 20px;
+      display: flex;
+      justify-content: center;
+    }
+    .container {
+      width: 100%;
+      max-width: 420px;
+    }
+    h1 {
+      color: #34d399;
+      text-align: center;
+      margin-bottom: 24px;
+    }
+    .input-group {
+      display: flex;
+      gap: 8px;
+      margin-bottom: 24px;
+    }
+    input {
+      flex: 1;
+      padding: 12px;
+      border-radius: 8px;
+      border: 1px solid #334155;
+      background-color: #1e293b;
+      color: white;
+      font-size: 16px;
+    }
+    input:focus {
+      outline: none;
+      border-color: #34d399;
+    }
+    button {
+      background-color: #34d399;
+      color: #0f172a;
+      font-weight: bold;
+      border: none;
+      padding: 12px 20px;
+      border-radius: 8px;
+      font-size: 16px;
+      cursor: pointer;
+    }
+    .card {
+      background-color: #1e293b;
+      border: 1px solid #334155;
+      border-radius: 8px;
+      padding: 16px;
+    }
+    ul {
+      list-style: none;
+      padding: 0;
+      margin: 0;
+    }
+    li {
+      display: flex;
+      justify-content: space-between;
+      padding: 10px 0;
+      border-bottom: 1px solid #334155;
+    }
+    li:last-child {
+      border-bottom: none;
+    }
+    .lap-num { color: #94a3b8; }
+    .lap-time { font-family: monospace; font-weight: bold; color: #6ee7b7; }
+  </style>
 </head>
-<body class="bg-slate-900 text-white min-h-screen p-4">
-  <div id="root"></div>
+<body>
+  <div class="container">
+    <h1>⏱️ Track Splits</h1>
+    <div class="input-group">
+      <input type="text" id="timeInput" placeholder="Lap time (e.g., 68.5 or 1:08.5)">
+      <button onclick="addSplit()">Add</button>
+    </div>
+    <div class="card">
+      <h3 style="margin-top:0;">Recorded Laps</h3>
+      <ul id="splitsList">
+        <li style="color:#94a3b8;">No split times entered yet.</li>
+      </ul>
+    </div>
+  </div>
 
-  <script type="text/text/babel">
-    function App() {
-      const [lapTime, setLapTime] = React.useState('');
-      const [splits, setSplits] = React.useState([]);
+  <script>
+    const splits = [];
 
-      const addSplit = (e) => {
-        e.preventDefault();
-        if (!lapTime) return;
-        setSplits([...splits, lapTime]);
-        setLapTime('');
-      };
+    function addSplit() {
+      const input = document.getElementById('timeInput');
+      const val = input.value.trim();
+      if (!val) return;
 
-      return (
-        <div className="max-w-md mx-auto py-8 font-sans">
-          <h1 className="text-3xl font-bold text-emerald-400 mb-6 text-center">⏱️ Track Splits</h1>
-          
-          <form onSubmit={addSplit} className="mb-6 flex gap-2">
-            <input 
-              type="text" 
-              placeholder="Lap time (e.g., 68.5 or 1:08.5)" 
-              value={lapTime}
-              onChange={(e) => setLapTime(e.target.value)}
-              className="flex-1 p-3 rounded-lg bg-slate-800 text-white border border-slate-700 focus:outline-none focus:border-emerald-500"
-            />
-            <button type="submit" className="bg-emerald-500 hover:bg-emerald-600 font-bold px-5 py-3 rounded-lg text-slate-950 transition">
-              Add
-            </button>
-          </form>
-
-          <div className="bg-slate-800 rounded-lg p-4 border border-slate-700">
-            <h2 className="text-xl font-semibold mb-3 text-slate-200">Recorded Laps ({splits.length})</h2>
-            {splits.length === 0 ? (
-              <p className="text-slate-400 text-sm">No split times entered yet.</p>
-            ) : (
-              <ul className="divide-y divide-slate-700">
-                {splits.map((split, i) => (
-                  <li key={i} className="py-2 flex justify-between">
-                    <span className="text-slate-400">Lap {i + 1}</span>
-                    <span className="font-mono font-bold text-emerald-300">{split}</span>
-                  </li>
-                ))}
-              </ul>
-            )}
-          </div>
-        </div>
-      );
+      splits.push(val);
+      input.value = '';
+      render();
     }
 
-    ReactDOM.createRoot(document.getElementById('root')).render(<App />);
+    function render() {
+      const list = document.getElementById('splitsList');
+      list.innerHTML = splits.map((s, i) => `
+        <li>
+          <span class="lap-num">Lap ${i + 1}</span>
+          <span class="lap-time">${s}</span>
+        </li>
+      `).join('');
+    }
   </script>
 </body>
 </html>
