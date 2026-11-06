@@ -120,4 +120,268 @@
               <th class="p-3">Cumulative</th>
             </tr>
           </thead>
-          <tbody id="targetTableBody"
+          <tbody id="targetTableBody" class="divide-y divide-slate-700/50 font-mono"></tbody>
+        </table>
+      </div>
+    </div>
+
+  </div>
+
+  <script>
+    let splits = [];
+    
+    // Stopwatch Variables
+    let swTimer = null;
+    let swStartTime = 0;
+    let swElapsedTime = 0;
+    let swLastLapTime = 0;
+    let swIsRunning = false;
+
+    function parseToSec(str) {
+      if (!str) return 0;
+      const clean = String(str).trim();
+      if (clean.includes(':')) {
+        const parts = clean.split(':');
+        const mins = parseFloat(parts[0]) || 0;
+        const secs = parseFloat(parts[1]) || 0;
+        return (mins * 60) + secs;
+      }
+      return parseFloat(clean) || 0;
+    }
+
+    function formatSec(sec) {
+      if (isNaN(sec) || sec <= 0) return '00:00.0';
+      const m = Math.floor(sec / 60);
+      const s = (sec % 60).toFixed(1);
+      const mFormatted = m < 10 ? '0' + m : m;
+      const sFormatted = s < 10 ? '0' + s : s;
+      return `${mFormatted}:${sFormatted}`;
+    }
+
+    function toggleStopwatch() {
+      const btn = document.getElementById('swStartBtn');
+      const lapBtn = document.getElementById('swLapBtn');
+
+      if (swIsRunning) {
+        clearInterval(swTimer);
+        swIsRunning = false;
+        btn.innerText = 'Resume';
+        btn.className = "bg-emerald-500 hover:bg-emerald-600 text-slate-950 font-bold px-4 py-2 rounded-lg transition w-24";
+        lapBtn.disabled = true;
+        lapBtn.className = "bg-indigo-600 text-white font-bold px-4 py-2 rounded-lg transition opacity-50 cursor-not-allowed w-24";
+      } else {
+        swStartTime = Date.now() - swElapsedTime;
+        swTimer = setInterval(updateStopwatch, 100);
+        swIsRunning = true;
+        btn.innerText = 'Pause';
+        btn.className = "bg-amber-500 hover:bg-amber-600 text-slate-950 font-bold px-4 py-2 rounded-lg transition w-24";
+        lapBtn.disabled = false;
+        lapBtn.className = "bg-indigo-600 hover:bg-indigo-500 text-white font-bold px-4 py-2 rounded-lg transition opacity-100 cursor-pointer w-24";
+      }
+    }
+
+    function updateStopwatch() {
+      swElapsedTime = Date.now() - swStartTime;
+      const disp = document.getElementById('swDisplay');
+      if (disp) disp.innerText = formatSec(swElapsedTime / 1000);
+    }
+
+    function lapStopwatch() {
+      if (!swIsRunning) return;
+      const currentSec = swElapsedTime / 1000;
+      const lapSec = currentSec - swLastLapTime;
+      swLastLapTime = currentSec;
+
+      const formatted = formatSec(lapSec);
+      splits.push({ text: formatted, sec: lapSec });
+      renderLog();
+    }
+
+    function resetStopwatch() {
+      clearInterval(swTimer);
+      swIsRunning = false;
+      swElapsedTime = 0;
+      swLastLapTime = 0;
+      
+      const disp = document.getElementById('swDisplay');
+      if (disp) disp.innerText = '00:00.0';
+      
+      const btn = document.getElementById('swStartBtn');
+      if (btn) {
+        btn.innerText = 'Start';
+        btn.className = "bg-emerald-500 hover:bg-emerald-600 text-slate-950 font-bold px-4 py-2 rounded-lg transition w-24";
+      }
+      
+      const lapBtn = document.getElementById('swLapBtn');
+      if (lapBtn) {
+        lapBtn.disabled = true;
+        lapBtn.className = "bg-indigo-600 text-white font-bold px-4 py-2 rounded-lg transition opacity-50 cursor-not-allowed w-24";
+      }
+    }
+
+    function switchMode(mode) {
+      const modeLog = document.getElementById('modeLog');
+      const modeTarget = document.getElementById('modeTarget');
+      const tabLog = document.getElementById('tabLog');
+      const tabTarget = document.getElementById('tabTarget');
+
+      if (mode === 'log') {
+        if (modeLog) modeLog.style.display = 'block';
+        if (modeTarget) modeTarget.style.display = 'none';
+        if (tabLog) tabLog.className = "px-3 py-1.5 rounded-md font-semibold bg-emerald-500 text-slate-950 transition";
+        if (tabTarget) tabTarget.className = "px-3 py-1.5 rounded-md font-semibold text-slate-400 hover:text-white transition";
+        renderLog();
+      } else {
+        if (modeLog) modeLog.style.display = 'none';
+        if (modeTarget) modeTarget.style.display = 'block';
+        if (tabTarget) tabTarget.className = "px-3 py-1.5 rounded-md font-semibold bg-emerald-500 text-slate-950 transition";
+        if (tabLog) tabLog.className = "px-3 py-1.5 rounded-md font-semibold text-slate-400 hover:text-white transition";
+        renderTarget();
+      }
+    }
+
+    function updateEventDistance() {
+      const distEl = document.getElementById('eventDist');
+      if (!distEl) return;
+      const parts = distEl.value.split('|');
+      const lapEl = document.getElementById('lapDist');
+      if (lapEl) lapEl.value = parts[1];
+      renderAll();
+    }
+
+    function renderAll() {
+      renderLog();
+      renderTarget();
+    }
+
+    function addSplit(e) {
+      if (e) e.preventDefault();
+      const input = document.getElementById('timeInput');
+      if (!input) return;
+      const sec = parseToSec(input.value);
+      if (sec <= 0) return;
+      splits.push({ text: input.value.trim(), sec: sec });
+      input.value = '';
+      renderLog();
+    }
+
+    function clearSplits() {
+      splits = [];
+      resetStopwatch();
+      renderLog();
+    }
+
+    function renderLog() {
+      const container = document.getElementById('splitsContainer');
+      const lapEl = document.getElementById('lapDist');
+      const intervalMeters = lapEl ? parseInt(lapEl.value) : 400;
+
+      if (!container) return;
+
+      const totalTimeEl = document.getElementById('totalTime');
+      const avgPaceEl = document.getElementById('avgPace');
+      const totalLapsEl = document.getElementById('totalLaps');
+
+      if (splits.length === 0) {
+        container.innerHTML = '<p class="text-slate-500 text-xs text-center py-6">Enter split times above or use the Live Stopwatch to record laps.</p>';
+        if (totalTimeEl) totalTimeEl.innerText = '00:00.0';
+        if (avgPaceEl) avgPaceEl.innerText = '--';
+        if (totalLapsEl) totalLapsEl.innerText = '0';
+        return;
+      }
+
+      const totalSec = splits.reduce((acc, curr) => acc + curr.sec, 0);
+      const avgSec = totalSec / splits.length;
+      const fastest = Math.min(...splits.map(s => s.sec));
+      const slowest = Math.max(...splits.map(s => s.sec));
+
+      if (totalTimeEl) totalTimeEl.innerText = formatSec(totalSec);
+      if (avgPaceEl) avgPaceEl.innerText = formatSec(avgSec);
+      if (totalLapsEl) totalLapsEl.innerText = splits.length;
+
+      let html = '<div class="space-y-3">';
+      splits.forEach((s, idx) => {
+        const isFastest = s.sec === fastest;
+        const isSlowest = s.sec === slowest && splits.length > 1;
+        const barWidth = Math.min(100, Math.max(20, (s.sec / slowest) * 100));
+
+        let tag = '';
+        if (isFastest) tag = '<span class="ml-2 text-emerald-400 font-bold text-[10px] bg-emerald-950 px-1.5 py-0.5 rounded border border-emerald-800">⚡ FASTEST</span>';
+        if (isSlowest) tag = '<span class="ml-2 text-amber-400 font-bold text-[10px] bg-amber-950 px-1.5 py-0.5 rounded border border-amber-800">SLOWEST</span>';
+
+        const colorClass = isFastest ? 'bg-emerald-400' : isSlowest ? 'bg-amber-400' : 'bg-cyan-500';
+
+        html += `
+          <div class="space-y-1">
+            <div class="flex justify-between text-xs font-mono">
+              <span class="text-slate-400">Lap ${idx + 1} (${intervalMeters * (idx + 1)}m) ${tag}</span>
+              <span class="text-emerald-300 font-bold">${s.text} (${formatSec(s.sec)})</span>
+            </div>
+            <div class="h-2 w-full bg-slate-900 rounded-full overflow-hidden">
+              <div class="h-full rounded-full transition-all duration-300 ${colorClass}" style="width: ${barWidth}%"></div>
+            </div>
+          </div>
+        `;
+      });
+      html += '</div>';
+      container.innerHTML = html;
+    }
+
+    function renderTarget() {
+      const targetInput = document.getElementById('targetTimeInput');
+      if (!targetInput) return;
+      const targetStr = targetInput.value;
+      const totalSec = parseToSec(targetStr);
+      const tbody = document.getElementById('targetTableBody');
+
+      if (!tbody) return;
+
+      if (totalSec <= 0) {
+        tbody.innerHTML = '<tr><td colspan="3" class="p-3 text-center text-slate-500">Enter a valid target finish time.</td></tr>';
+        return;
+      }
+
+      const eventEl = document.getElementById('eventDist');
+      const eventParts = eventEl ? eventEl.value.split('|') : ['1609.34', '400'];
+      const totalMeters = parseFloat(eventParts[0]) || 1609.34;
+      const lapEl = document.getElementById('lapDist');
+      const lapDist = lapEl ? parseInt(lapEl.value) : 400;
+      const totalLaps = Math.ceil(totalMeters / lapDist);
+      const baseLap = totalSec / totalLaps;
+      
+      const stratEl = document.getElementById('paceStrategy');
+      const strategy = stratEl ? stratEl.value : 'even';
+
+      let html = '';
+      let cumSec = 0;
+
+      for (let i = 0; i < totalLaps; i++) {
+        let mult = 1;
+        if (strategy === 'negative') {
+          mult = 1.04 - (i / (totalLaps - 1 || 1)) * 0.08;
+        } else if (strategy === 'positive') {
+          mult = 0.96 + (i / (totalLaps - 1 || 1)) * 0.08;
+        }
+
+        const lapSec = baseLap * mult;
+        cumSec += lapSec;
+        const currentDist = Math.min(lapDist * (i + 1), Math.round(totalMeters));
+
+        html += `
+          <tr class="hover:bg-slate-700/30">
+            <td class="p-3 text-slate-400">Lap ${i + 1} (${currentDist}m)</td>
+            <td class="p-3 text-emerald-400 font-bold">${formatSec(lapSec)}</td>
+            <td class="p-3 text-cyan-300">${formatSec(cumSec)}</td>
+          </tr>
+        `;
+      }
+      tbody.innerHTML = html;
+    }
+
+    // Initial load once DOM is ready
+    window.addEventListener('DOMContentLoaded', () => {
+      renderAll();
+    });
+  </script>
+</body>
+</html>
