@@ -16,17 +16,32 @@
     }
     .container {
       width: 100%;
-      max-width: 420px;
+      max-width: 440px;
     }
     h1 {
       color: #34d399;
       text-align: center;
-      margin-bottom: 24px;
+      margin-bottom: 20px;
     }
+    .stats {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 10px;
+      margin-bottom: 20px;
+    }
+    .stat-box {
+      background: #1e293b;
+      padding: 12px;
+      border-radius: 8px;
+      border: 1px solid #334155;
+      text-align: center;
+    }
+    .stat-val { font-size: 20px; font-weight: bold; color: #6ee7b7; font-family: monospace; }
+    .stat-lbl { font-size: 12px; color: #94a3b8; }
     .input-group {
       display: flex;
       gap: 8px;
-      margin-bottom: 24px;
+      margin-bottom: 20px;
     }
     input {
       flex: 1;
@@ -37,19 +52,22 @@
       color: white;
       font-size: 16px;
     }
-    input:focus {
-      outline: none;
-      border-color: #34d399;
-    }
+    input:focus { outline: none; border-color: #34d399; }
     button {
       background-color: #34d399;
       color: #0f172a;
       font-weight: bold;
       border: none;
-      padding: 12px 20px;
+      padding: 12px 18px;
       border-radius: 8px;
       font-size: 16px;
       cursor: pointer;
+    }
+    .btn-reset {
+      background-color: #ef4444;
+      color: white;
+      width: 100%;
+      margin-top: 15px;
     }
     .card {
       background-color: #1e293b;
@@ -57,20 +75,14 @@
       border-radius: 8px;
       padding: 16px;
     }
-    ul {
-      list-style: none;
-      padding: 0;
-      margin: 0;
-    }
+    ul { list-style: none; padding: 0; margin: 0; }
     li {
       display: flex;
       justify-content: space-between;
       padding: 10px 0;
       border-bottom: 1px solid #334155;
     }
-    li:last-child {
-      border-bottom: none;
-    }
+    li:last-child { border-bottom: none; }
     .lap-num { color: #94a3b8; }
     .lap-time { font-family: monospace; font-weight: bold; color: #6ee7b7; }
   </style>
@@ -78,37 +90,88 @@
 <body>
   <div class="container">
     <h1>⏱️ Track Splits</h1>
-    <div class="input-group">
-      <input type="text" id="timeInput" placeholder="Lap time (e.g., 68.5 or 1:08.5)">
-      <button onclick="addSplit()">Add</button>
+    
+    <div class="stats">
+      <div class="stat-box">
+        <div class="stat-val" id="totalTime">00:00.0</div>
+        <div class="stat-lbl">Total Elapsed Time</div>
+      </div>
+      <div class="stat-box">
+        <div class="stat-val" id="avgLap">--</div>
+        <div class="stat-lbl">Average Lap Pace</div>
+      </div>
     </div>
+
+    <form onsubmit="addSplit(event)" class="input-group">
+      <input type="text" id="timeInput" placeholder="Lap time (e.g. 68.5 or 1:08.5)">
+      <button type="submit">Add</button>
+    </form>
+
     <div class="card">
       <h3 style="margin-top:0;">Recorded Laps</h3>
       <ul id="splitsList">
         <li style="color:#94a3b8;">No split times entered yet.</li>
       </ul>
     </div>
+
+    <button onclick="resetAll()" class="btn-reset">Clear All Splits</button>
   </div>
 
   <script>
-    const splits = [];
+    let splits = [];
 
-    function addSplit() {
+    function parseToSeconds(str) {
+      if (str.includes(':')) {
+        const parts = str.split(':');
+        return (parseFloat(parts[0]) * 60) + parseFloat(parts[1]);
+      }
+      return parseFloat(str);
+    }
+
+    function formatTime(sec) {
+      const m = Math.floor(sec / 60);
+      const s = (sec % 60).toFixed(1);
+      const sFormatted = s < 10 ? '0' + s : s;
+      return m > 0 ? `${m}:${sFormatted}` : `${s}s`;
+    }
+
+    function addSplit(e) {
+      e.preventDefault();
       const input = document.getElementById('timeInput');
       const val = input.value.trim();
-      if (!val) return;
+      const sec = parseToSeconds(val);
+      
+      if (isNaN(sec) || sec <= 0) return;
 
-      splits.push(val);
+      splits.push({ text: val, sec: sec });
       input.value = '';
+      render();
+    }
+
+    function resetAll() {
+      splits = [];
       render();
     }
 
     function render() {
       const list = document.getElementById('splitsList');
+      if (splits.length === 0) {
+        list.innerHTML = '<li style="color:#94a3b8;">No split times entered yet.</li>';
+        document.getElementById('totalTime').innerText = '00:00.0';
+        document.getElementById('avgLap').innerText = '--';
+        return;
+      }
+
+      const totalSec = splits.reduce((acc, curr) => acc + curr.sec, 0);
+      const avgSec = totalSec / splits.length;
+
+      document.getElementById('totalTime').innerText = formatTime(totalSec);
+      document.getElementById('avgLap').innerText = formatTime(avgSec);
+
       list.innerHTML = splits.map((s, i) => `
         <li>
           <span class="lap-num">Lap ${i + 1}</span>
-          <span class="lap-time">${s}</span>
+          <span class="lap-time">${s.text} (${formatTime(s.sec)})</span>
         </li>
       `).join('');
     }
