@@ -31,8 +31,7 @@
         <select id="eventDist" onchange="updateEventDistance()" class="w-full bg-slate-900 border border-slate-700 rounded-lg p-2 text-white focus:outline-none">
           <option value="400|100">400m</option>
           <option value="800|200">800m</option>
-          <option value="1500|400" selected>1500m</option>
-          <option value="1609.34|400">1600m / 1 Mile</option>
+          <option value="1609.34|400" selected>1600m / 1 Mile</option>
           <option value="3200|400">3200m</option>
           <option value="5000|400">5000m / 5K</option>
           <option value="10000|400">10,000m / 10K</option>
@@ -205,69 +204,4 @@
         if (isFastest) tag = '<span class="ml-2 text-emerald-400 font-bold text-[10px] bg-emerald-950 px-1.5 py-0.5 rounded border border-emerald-800">⚡ FASTEST</span>';
         if (isSlowest) tag = '<span class="ml-2 text-amber-400 font-bold text-[10px] bg-amber-950 px-1.5 py-0.5 rounded border border-amber-800">SLOWEST</span>';
 
-        const colorClass = isFastest ? 'bg-emerald-400' : isSlowest ? 'bg-amber-400' : 'bg-cyan-500';
-
-        html += `
-          <div class="space-y-1">
-            <div class="flex justify-between text-xs font-mono">
-              <span class="text-slate-400">Lap ${idx + 1} (${intervalMeters * (idx + 1)}m) ${tag}</span>
-              <span class="text-emerald-300 font-bold">${s.text} (${formatSec(s.sec)})</span>
-            </div>
-            <div class="h-2 w-full bg-slate-900 rounded-full overflow-hidden">
-              <div class="h-full rounded-full transition-all duration-300 ${colorClass}" style="width: ${barWidth}%"></div>
-            </div>
-          </div>
-        `;
-      });
-      html += '</div>';
-      container.innerHTML = html;
-    }
-
-    function renderTarget() {
-      const targetStr = document.getElementById('targetTimeInput').value;
-      const totalSec = parseToSec(targetStr);
-      const tbody = document.getElementById('targetTableBody');
-
-      if (totalSec <= 0) {
-        tbody.innerHTML = '<tr><td colspan="3" class="p-3 text-center text-slate-500">Enter a valid target finish time.</td></tr>';
-        return;
-      }
-
-      const eventVal = document.getElementById('eventDist').value.split('|');
-      const totalMeters = parseFloat(eventVal[0]);
-      const lapDist = parseInt(document.getElementById('lapDist').value);
-      const totalLaps = Math.ceil(totalMeters / lapDist);
-      const baseLap = totalSec / totalLaps;
-      const strategy = document.getElementById('paceStrategy').value;
-
-      let html = '';
-      let cumSec = 0;
-
-      for (let i = 0; i < totalLaps; i++) {
-        let mult = 1;
-        if (strategy === 'negative') {
-          mult = 1.04 - (i / (totalLaps - 1 || 1)) * 0.08;
-        } else if (strategy === 'positive') {
-          mult = 0.96 + (i / (totalLaps - 1 || 1)) * 0.08;
-        }
-
-        const lapSec = baseLap * mult;
-        cumSec += lapSec;
-        const currentDist = Math.min(lapDist * (i + 1), totalMeters);
-
-        html += `
-          <tr class="hover:bg-slate-700/30">
-            <td class="p-3 text-slate-400">Lap ${i + 1} (${currentDist}m)</td>
-            <td class="p-3 text-emerald-400 font-bold">${formatSec(lapSec)}</td>
-            <td class="p-3 text-cyan-300">${formatSec(cumSec)}</td>
-          </tr>
-        `;
-      }
-      tbody.innerHTML = html;
-    }
-
-    // Initial render
-    render();
-  </script>
-</body>
-</html>
+        const colorClass = isFastest ? 'bg-emerald-400' : isSlowest ? 'bg-amber-400' : 'bg-cyan-5
