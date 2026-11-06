@@ -39,7 +39,7 @@
       </div>
       <div>
         <label class="text-slate-400 block mb-1">Interval Distance</label>
-        <select id="lapDist" onchange="render()" class="w-full bg-slate-900 border border-slate-700 rounded-lg p-2 text-white focus:outline-none">
+        <select id="lapDist" onchange="onIntervalChange()" class="w-full bg-slate-900 border border-slate-700 rounded-lg p-2 text-white focus:outline-none">
           <option value="100">100m</option>
           <option value="200">200m</option>
           <option value="400" selected>400m</option>
@@ -83,7 +83,7 @@
       <div class="bg-slate-800 p-4 rounded-xl border border-slate-700 grid grid-cols-2 gap-3 text-xs">
         <div>
           <label class="text-slate-400 block mb-1">Target Finish Time</label>
-          <input type="text" id="targetTimeInput" value="04:15.0" oninput="renderTarget()" class="w-full bg-slate-900 border border-slate-700 rounded-lg p-2 text-white font-mono focus:outline-none">
+          <input type="text" id="targetTimeInput" value="04:40.0" onkeyup="renderTarget()" onchange="renderTarget()" class="w-full bg-slate-900 border border-slate-700 rounded-lg p-2 text-white font-mono focus:outline-none">
         </div>
         <div>
           <label class="text-slate-400 block mb-1">Pacing Strategy</label>
@@ -110,98 +110,3 @@
     </div>
 
   </div>
-
-  <script>
-    let currentMode = 'log';
-    let splits = [];
-
-    function parseToSec(str) {
-      if (!str) return 0;
-      const parts = str.trim().split(':');
-      if (parts.length === 2) {
-        return (parseFloat(parts[0]) * 60) + parseFloat(parts[1]);
-      }
-      return parseFloat(parts[0]) || 0;
-    }
-
-    function formatSec(sec) {
-      if (isNaN(sec) || sec <= 0) return '00:00.0';
-      const m = Math.floor(sec / 60);
-      const s = (sec % 60).toFixed(1);
-      const sFormatted = s < 10 ? '0' + s : s;
-      return m > 0 ? `${m}:${sFormatted}` : `${s}s`;
-    }
-
-    function switchMode(mode) {
-      currentMode = mode;
-      document.getElementById('modeLog').classList.toggle('hidden', mode !== 'log');
-      document.getElementById('modeTarget').classList.toggle('hidden', mode !== 'target');
-      
-      const tabLog = document.getElementById('tabLog');
-      const tabTarget = document.getElementById('tabTarget');
-
-      if (mode === 'log') {
-        tabLog.className = "px-3 py-1.5 rounded-md font-semibold bg-emerald-500 text-slate-950 transition";
-        tabTarget.className = "px-3 py-1.5 rounded-md font-semibold text-slate-400 hover:text-white transition";
-        render();
-      } else {
-        tabTarget.className = "px-3 py-1.5 rounded-md font-semibold bg-emerald-500 text-slate-950 transition";
-        tabLog.className = "px-3 py-1.5 rounded-md font-semibold text-slate-400 hover:text-white transition";
-        renderTarget();
-      }
-    }
-
-    function updateEventDistance() {
-      const val = document.getElementById('eventDist').value.split('|')[1];
-      document.getElementById('lapDist').value = val;
-      render();
-      if (currentMode === 'target') renderTarget();
-    }
-
-    function addSplit(e) {
-      e.preventDefault();
-      const input = document.getElementById('timeInput');
-      const sec = parseToSec(input.value);
-      if (sec <= 0) return;
-      splits.push({ text: input.value.trim(), sec: sec });
-      input.value = '';
-      render();
-    }
-
-    function clearSplits() {
-      splits = [];
-      render();
-    }
-
-    function render() {
-      const container = document.getElementById('splitsContainer');
-      const intervalMeters = parseInt(document.getElementById('lapDist').value);
-
-      if (splits.length === 0) {
-        container.innerHTML = '<p class="text-slate-500 text-xs text-center py-6">Enter split times above to generate pace metrics and visual charts.</p>';
-        document.getElementById('totalTime').innerText = '00:00.0';
-        document.getElementById('avgPace').innerText = '--';
-        document.getElementById('totalLaps').innerText = '0';
-        return;
-      }
-
-      const totalSec = splits.reduce((acc, curr) => acc + curr.sec, 0);
-      const avgSec = totalSec / splits.length;
-      const fastest = Math.min(...splits.map(s => s.sec));
-      const slowest = Math.max(...splits.map(s => s.sec));
-
-      document.getElementById('totalTime').innerText = formatSec(totalSec);
-      document.getElementById('avgPace').innerText = formatSec(avgSec);
-      document.getElementById('totalLaps').innerText = splits.length;
-
-      let html = '<div class="space-y-3">';
-      splits.forEach((s, idx) => {
-        const isFastest = s.sec === fastest;
-        const isSlowest = s.sec === slowest && splits.length > 1;
-        const barWidth = Math.min(100, Math.max(20, (s.sec / slowest) * 100));
-
-        let tag = '';
-        if (isFastest) tag = '<span class="ml-2 text-emerald-400 font-bold text-[10px] bg-emerald-950 px-1.5 py-0.5 rounded border border-emerald-800">⚡ FASTEST</span>';
-        if (isSlowest) tag = '<span class="ml-2 text-amber-400 font-bold text-[10px] bg-amber-950 px-1.5 py-0.5 rounded border border-amber-800">SLOWEST</span>';
-
-        const colorClass = isFastest ? 'bg-emerald-400' : isSlowest ? 'bg-amber-400' : 'bg-cyan-5
