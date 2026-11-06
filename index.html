@@ -19,8 +19,8 @@
         <p class="text-xs text-slate-400">Analysis & Target Generator</p>
       </div>
       <div class="flex bg-slate-900 p-1 rounded-lg border border-slate-700 text-xs">
-        <button id="tabLog" onclick="switchMode('log')" class="px-3 py-1.5 rounded-md font-semibold bg-emerald-500 text-slate-950 transition">Splits Log</button>
-        <button id="tabTarget" onclick="switchMode('target')" class="px-3 py-1.5 rounded-md font-semibold text-slate-400 hover:text-white transition">Target Generator</button>
+        <button type="button" id="tabLog" onclick="switchMode('log')" class="px-3 py-1.5 rounded-md font-semibold bg-emerald-500 text-slate-950 transition">Splits Log</button>
+        <button type="button" id="tabTarget" onclick="switchMode('target')" class="px-3 py-1.5 rounded-md font-semibold text-slate-400 hover:text-white transition">Target Generator</button>
       </div>
     </div>
 
@@ -72,18 +72,18 @@
       <div class="bg-slate-800 p-4 rounded-xl border border-slate-700">
         <div class="flex justify-between items-center mb-3">
           <h3 class="font-semibold text-sm text-slate-200">Recorded Laps Analysis</h3>
-          <button onclick="clearSplits()" class="text-xs text-rose-400 hover:underline">Clear All</button>
+          <button type="button" onclick="clearSplits()" class="text-xs text-rose-400 hover:underline">Clear All</button>
         </div>
         <div id="splitsContainer"></div>
       </div>
     </div>
 
     <!-- MODE 2: TARGET GENERATOR -->
-    <div id="modeTarget" class="space-y-4 hidden">
+    <div id="modeTarget" class="space-y-4" style="display: none;">
       <div class="bg-slate-800 p-4 rounded-xl border border-slate-700 grid grid-cols-2 gap-3 text-xs">
         <div>
           <label class="text-slate-400 block mb-1">Target Finish Time</label>
-          <input type="text" id="targetTimeInput" value="04:40.0" onkeyup="renderTarget()" onchange="renderTarget()" class="w-full bg-slate-900 border border-slate-700 rounded-lg p-2 text-white font-mono focus:outline-none">
+          <input type="text" id="targetTimeInput" value="04:40.0" oninput="renderTarget()" class="w-full bg-slate-900 border border-slate-700 rounded-lg p-2 text-white font-mono focus:outline-none">
         </div>
         <div>
           <label class="text-slate-400 block mb-1">Pacing Strategy</label>
@@ -110,3 +110,20 @@
     </div>
 
   </div>
+
+  <script>
+    let splits = [];
+
+    function parseToSec(str) {
+      if (!str) return 0;
+      const clean = str.trim();
+      if (clean.includes(':')) {
+        const parts = clean.split(':');
+        const mins = parseFloat(parts[0]) || 0;
+        const secs = parseFloat(parts[1]) || 0;
+        return (mins * 60) + secs;
+      }
+      return parseFloat(clean) || 0;
+    }
+
+    function formatSec(sec) {
