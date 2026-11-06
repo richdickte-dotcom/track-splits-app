@@ -5,153 +5,269 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>Track & Field Split Times Calculator</title>
   <script src="https://cdn.tailwindcss.com"></script>
-  <script src="https://unpkg.com/react@18/umd/react.production.min.js"></script>
-  <script src="https://unpkg.com/react-dom@18/umd/react-dom.production.min.js"></script>
-  <script src="https://unpkg.com/@babel/standalone/babel.min.js"></script>
+  <style>
+    body { background-color: #0f172a; color: #f8fafc; font-family: system-ui, -apple-system, sans-serif; }
+  </style>
 </head>
-<body class="bg-slate-900 text-slate-100 min-h-screen p-3 md:p-6">
-  <div id="root"></div>
+<body class="min-h-screen p-3 md:p-6">
+  <div class="max-w-2xl mx-auto space-y-4">
+    
+    <!-- Header -->
+    <div class="bg-slate-800 p-4 rounded-xl border border-slate-700 flex flex-wrap justify-between items-center gap-3">
+      <div>
+        <h1 class="text-xl font-bold text-emerald-400 flex items-center gap-2">⏱️ Track & Field Splits</h1>
+        <p class="text-xs text-slate-400">Analysis & Target Generator</p>
+      </div>
+      <div class="flex bg-slate-900 p-1 rounded-lg border border-slate-700 text-xs">
+        <button id="tabLog" onclick="switchMode('log')" class="px-3 py-1.5 rounded-md font-semibold bg-emerald-500 text-slate-950 transition">Splits Log</button>
+        <button id="tabTarget" onclick="switchMode('target')" class="px-3 py-1.5 rounded-md font-semibold text-slate-400 hover:text-white transition">Target Generator</button>
+      </div>
+    </div>
 
-  <script type="text/babel">
-    const { useState, useMemo } = React;
+    <!-- Controls -->
+    <div class="bg-slate-800 p-4 rounded-xl border border-slate-700 grid grid-cols-2 gap-3 text-xs">
+      <div>
+        <label class="text-slate-400 block mb-1">Event Distance</label>
+        <select id="eventDist" onchange="updateEventDistance()" class="w-full bg-slate-900 border border-slate-700 rounded-lg p-2 text-white focus:outline-none">
+          <option value="400|100">400m</option>
+          <option value="800|200">800m</option>
+          <option value="1500|400" selected>1500m</option>
+          <option value="1609.34|400">1600m / 1 Mile</option>
+          <option value="3000|400">3000m</option>
+          <option value="5000|400">5000m / 5K</option>
+          <option value="10000|400">10,000m / 10K</option>
+        </select>
+      </div>
+      <div>
+        <label class="text-slate-400 block mb-1">Interval Distance</label>
+        <select id="lapDist" onchange="render()" class="w-full bg-slate-900 border border-slate-700 rounded-lg p-2 text-white focus:outline-none">
+          <option value="100">100m</option>
+          <option value="200">200m</option>
+          <option value="400" selected>400m</option>
+        </select>
+      </div>
+    </div>
 
-    const DISTANCES = [
-      { name: '400m', meters: 400, defaultLap: 100 },
-      { name: '800m', meters: 800, defaultLap: 200 },
-      { name: '1500m', meters: 1500, defaultLap: 400 },
-      { name: '1600m / 1 Mile', meters: 1609.34, defaultLap: 400 },
-      { name: '3000m', meters: 3000, defaultLap: 400 },
-      { name: '5000m / 5K', meters: 5000, defaultLap: 400 },
-      { name: '10,000m / 10K', meters: 10000, defaultLap: 400 }
-    ];
+    <!-- MODE 1: LOG & ANALYZE -->
+    <div id="modeLog" class="space-y-4">
+      <div class="grid grid-cols-3 gap-2 text-center">
+        <div class="bg-slate-800 p-3 rounded-xl border border-slate-700">
+          <div class="text-slate-400 text-xs">Total Time</div>
+          <div id="totalTime" class="text-lg font-bold font-mono text-emerald-400 mt-0.5">00:00.0</div>
+        </div>
+        <div class="bg-slate-800 p-3 rounded-xl border border-slate-700">
+          <div class="text-slate-400 text-xs">Avg Lap Pace</div>
+          <div id="avgPace" class="text-lg font-bold font-mono text-cyan-400 mt-0.5">--</div>
+        </div>
+        <div class="bg-slate-800 p-3 rounded-xl border border-slate-700">
+          <div class="text-slate-400 text-xs">Total Laps</div>
+          <div id="totalLaps" class="text-lg font-bold font-mono text-indigo-400 mt-0.5">0</div>
+        </div>
+      </div>
 
-    function App() {
-      const [mode, setMode] = useState('log'); // 'log' or 'target'
-      const [selectedDistance, setSelectedDistance] = useState(DISTANCES[2]);
-      const [lapDist, setLapDist] = useState(400);
-      const [splits, setSplits] = useState([]);
-      const [currentInput, setCurrentInput] = useState('');
+      <form onsubmit="addSplit(event)" class="flex gap-2">
+        <input type="text" id="timeInput" placeholder="Enter lap time (e.g. 68.5 or 1:08.5)" class="flex-1 bg-slate-800 border border-slate-700 rounded-xl px-3 py-2.5 text-sm text-white focus:outline-none focus:border-emerald-500">
+        <button type="submit" class="bg-emerald-500 hover:bg-emerald-600 font-bold px-5 py-2.5 rounded-xl text-slate-950 text-sm transition">Add Split</button>
+      </form>
+
+      <div class="bg-slate-800 p-4 rounded-xl border border-slate-700">
+        <div class="flex justify-between items-center mb-3">
+          <h3 class="font-semibold text-sm text-slate-200">Recorded Laps Analysis</h3>
+          <button onclick="clearSplits()" class="text-xs text-rose-400 hover:underline">Clear All</button>
+        </div>
+        <div id="splitsContainer"></div>
+      </div>
+    </div>
+
+    <!-- MODE 2: TARGET GENERATOR -->
+    <div id="modeTarget" class="space-y-4 hidden">
+      <div class="bg-slate-800 p-4 rounded-xl border border-slate-700 grid grid-cols-2 gap-3 text-xs">
+        <div>
+          <label class="text-slate-400 block mb-1">Target Finish Time</label>
+          <input type="text" id="targetTimeInput" value="04:15.0" oninput="renderTarget()" class="w-full bg-slate-900 border border-slate-700 rounded-lg p-2 text-white font-mono focus:outline-none">
+        </div>
+        <div>
+          <label class="text-slate-400 block mb-1">Pacing Strategy</label>
+          <select id="paceStrategy" onchange="renderTarget()" class="w-full bg-slate-900 border border-slate-700 rounded-lg p-2 text-white focus:outline-none">
+            <option value="even">Even Pacing (Flat)</option>
+            <option value="negative">Negative Split (Faster finish)</option>
+            <option value="positive">Positive Split (Fast start)</option>
+          </select>
+        </div>
+      </div>
+
+      <div class="bg-slate-800 rounded-xl border border-slate-700 overflow-hidden">
+        <table class="w-full text-left text-xs">
+          <thead class="bg-slate-900/50 text-slate-400 border-b border-slate-700">
+            <tr>
+              <th class="p-3">Interval</th>
+              <th class="p-3">Target Split</th>
+              <th class="p-3">Cumulative</th>
+            </tr>
+          </thead>
+          <tbody id="targetTableBody" class="divide-y divide-slate-700/50 font-mono"></tbody>
+        </table>
+      </div>
+    </div>
+
+  </div>
+
+  <script>
+    let currentMode = 'log';
+    let splits = [];
+
+    function parseToSec(str) {
+      if (!str) return 0;
+      const parts = str.trim().split(':');
+      if (parts.length === 2) {
+        return (parseFloat(parts[0]) * 60) + parseFloat(parts[1]);
+      }
+      return parseFloat(parts[0]) || 0;
+    }
+
+    function formatSec(sec) {
+      if (isNaN(sec) || sec <= 0) return '00:00.0';
+      const m = Math.floor(sec / 60);
+      const s = (sec % 60).toFixed(1);
+      const sFormatted = s < 10 ? '0' + s : s;
+      return m > 0 ? `${m}:${sFormatted}` : `${s}s`;
+    }
+
+    function switchMode(mode) {
+      currentMode = mode;
+      document.getElementById('modeLog').classList.toggle('hidden', mode !== 'log');
+      document.getElementById('modeTarget').classList.toggle('hidden', mode !== 'target');
       
-      // Target Mode state
-      const [targetTimeStr, setTargetTimeStr] = useState('04:15.0');
-      const [paceStrategy, setPaceStrategy] = useState('even'); // 'even', 'negative', 'positive'
+      const tabLog = document.getElementById('tabLog');
+      const tabTarget = document.getElementById('tabTarget');
 
-      // Helper calculations
-      const parseTimeToSec = (str) => {
-        if (!str) return 0;
-        const parts = str.trim().split(':');
-        if (parts.length === 2) {
-          return parseFloat(parts[0]) * 60 + parseFloat(parts[1]);
+      if (mode === 'log') {
+        tabLog.className = "px-3 py-1.5 rounded-md font-semibold bg-emerald-500 text-slate-950 transition";
+        tabTarget.className = "px-3 py-1.5 rounded-md font-semibold text-slate-400 hover:text-white transition";
+        render();
+      } else {
+        tabTarget.className = "px-3 py-1.5 rounded-md font-semibold bg-emerald-500 text-slate-950 transition";
+        tabLog.className = "px-3 py-1.5 rounded-md font-semibold text-slate-400 hover:text-white transition";
+        renderTarget();
+      }
+    }
+
+    function updateEventDistance() {
+      const val = document.getElementById('eventDist').value.split('|')[1];
+      document.getElementById('lapDist').value = val;
+      render();
+      if (currentMode === 'target') renderTarget();
+    }
+
+    function addSplit(e) {
+      e.preventDefault();
+      const input = document.getElementById('timeInput');
+      const sec = parseToSec(input.value);
+      if (sec <= 0) return;
+      splits.push({ text: input.value.trim(), sec: sec });
+      input.value = '';
+      render();
+    }
+
+    function clearSplits() {
+      splits = [];
+      render();
+    }
+
+    function render() {
+      const container = document.getElementById('splitsContainer');
+      const intervalMeters = parseInt(document.getElementById('lapDist').value);
+
+      if (splits.length === 0) {
+        container.innerHTML = '<p class="text-slate-500 text-xs text-center py-6">Enter split times above to generate pace metrics and visual charts.</p>';
+        document.getElementById('totalTime').innerText = '00:00.0';
+        document.getElementById('avgPace').innerText = '--';
+        document.getElementById('totalLaps').innerText = '0';
+        return;
+      }
+
+      const totalSec = splits.reduce((acc, curr) => acc + curr.sec, 0);
+      const avgSec = totalSec / splits.length;
+      const fastest = Math.min(...splits.map(s => s.sec));
+      const slowest = Math.max(...splits.map(s => s.sec));
+
+      document.getElementById('totalTime').innerText = formatSec(totalSec);
+      document.getElementById('avgPace').innerText = formatSec(avgSec);
+      document.getElementById('totalLaps').innerText = splits.length;
+
+      let html = '<div class="space-y-3">';
+      splits.forEach((s, idx) => {
+        const isFastest = s.sec === fastest;
+        const isSlowest = s.sec === slowest && splits.length > 1;
+        const barWidth = Math.min(100, Math.max(20, (s.sec / slowest) * 100));
+
+        let tag = '';
+        if (isFastest) tag = '<span class="ml-2 text-emerald-400 font-bold text-[10px] bg-emerald-950 px-1.5 py-0.5 rounded border border-emerald-800">⚡ FASTEST</span>';
+        if (isSlowest) tag = '<span class="ml-2 text-amber-400 font-bold text-[10px] bg-amber-950 px-1.5 py-0.5 rounded border border-amber-800">SLOWEST</span>';
+
+        const colorClass = isFastest ? 'bg-emerald-400' : isSlowest ? 'bg-amber-400' : 'bg-cyan-500';
+
+        html += `
+          <div class="space-y-1">
+            <div class="flex justify-between text-xs font-mono">
+              <span class="text-slate-400">Lap ${idx + 1} (${intervalMeters * (idx + 1)}m) ${tag}</span>
+              <span class="text-emerald-300 font-bold">${s.text} (${formatSec(s.sec)})</span>
+            </div>
+            <div class="h-2 w-full bg-slate-900 rounded-full overflow-hidden">
+              <div class="h-full rounded-full transition-all duration-300 ${colorClass}" style="width: ${barWidth}%"></div>
+            </div>
+          </div>
+        `;
+      });
+      html += '</div>';
+      container.innerHTML = html;
+    }
+
+    function renderTarget() {
+      const targetStr = document.getElementById('targetTimeInput').value;
+      const totalSec = parseToSec(targetStr);
+      const tbody = document.getElementById('targetTableBody');
+
+      if (totalSec <= 0) {
+        tbody.innerHTML = '<tr><td colspan="3" class="p-3 text-center text-slate-500">Enter a valid target finish time.</td></tr>';
+        return;
+      }
+
+      const eventVal = document.getElementById('eventDist').value.split('|');
+      const totalMeters = parseFloat(eventVal[0]);
+      const lapDist = parseInt(document.getElementById('lapDist').value);
+      const totalLaps = Math.ceil(totalMeters / lapDist);
+      const baseLap = totalSec / totalLaps;
+      const strategy = document.getElementById('paceStrategy').value;
+
+      let html = '';
+      let cumSec = 0;
+
+      for (let i = 0; i < totalLaps; i++) {
+        let mult = 1;
+        if (strategy === 'negative') {
+          mult = 1.04 - (i / (totalLaps - 1 || 1)) * 0.08;
+        } else if (strategy === 'positive') {
+          mult = 0.96 + (i / (totalLaps - 1 || 1)) * 0.08;
         }
-        return parseFloat(parts[0]) || 0;
-      };
 
-      const formatSecToTime = (sec) => {
-        if (isNaN(sec) || sec <= 0) return '00:00.0';
-        const mins = Math.floor(sec / 60);
-        const secs = (sec % 60).toFixed(1);
-        const paddedSecs = secs < 10 ? '0' + secs : secs;
-        return mins > 0 ? `${mins}:${paddedSecs}` : `${secs}s`;
-      };
+        const lapSec = baseLap * mult;
+        cumSec += lapSec;
+        const currentDist = Math.min(lapDist * (i + 1), totalMeters);
 
-      const handleAddSplit = (e) => {
-        e.preventDefault();
-        const sec = parseTimeToSec(currentInput);
-        if (sec <= 0) return;
-        setSplits([...splits, { text: currentInput, sec }]);
-        setCurrentInput('');
-      };
+        html += `
+          <tr class="hover:bg-slate-700/30">
+            <td class="p-3 text-slate-400">Lap ${i + 1} (${currentDist}m)</td>
+            <td class="p-3 text-emerald-400 font-bold">${formatSec(lapSec)}</td>
+            <td class="p-3 text-cyan-300">${formatSec(cumSec)}</td>
+          </tr>
+        `;
+      }
+      tbody.innerHTML = html;
+    }
 
-      const totalSplitsSec = useMemo(() => splits.reduce((a, b) => a + b.sec, 0), [splits]);
-      const avgSplitSec = useMemo(() => splits.length > 0 ? totalSplitsSec / splits.length : 0, [splits, totalSplitsSec]);
-      
-      const fastestLap = useMemo(() => {
-        if (splits.length === 0) return null;
-        return Math.min(...splits.map(s => s.sec));
-      }, [splits]);
-
-      const slowestLap = useMemo(() => {
-        if (splits.length === 0) return null;
-        return Math.max(...splits.map(s => s.sec));
-      }, [splits]);
-
-      // Target splits generator
-      const targetSplits = useMemo(() => {
-        const totalSec = parseTimeToSec(targetTimeStr);
-        if (totalSec <= 0) return [];
-        const totalLaps = Math.ceil(selectedDistance.meters / lapDist);
-        const baseLap = totalSec / totalLaps;
-
-        return Array.from({ length: totalLaps }, (_, i) => {
-          let multiplier = 1;
-          if (paceStrategy === 'negative') {
-            multiplier = 1.04 - (i / (totalLaps - 1 || 1)) * 0.08; // starts 4% slower, ends 4% faster
-          } else if (paceStrategy === 'positive') {
-            multiplier = 0.96 + (i / (totalLaps - 1 || 1)) * 0.08; // starts 4% faster, ends 4% slower
-          }
-          return baseLap * multiplier;
-        });
-      }, [targetTimeStr, selectedDistance, lapDist, paceStrategy]);
-
-      return (
-        <div className="max-w-2xl mx-auto space-y-4 font-sans">
-          {/* Header */}
-          <div className="bg-slate-800 p-4 rounded-xl border border-slate-700 flex flex-wrap justify-between items-center gap-3">
-            <div>
-              <h1 className="text-xl font-bold text-emerald-400 flex items-center gap-2">
-                ⏱️ Track & Field Splits
-              </h1>
-              <p className="text-xs text-slate-400">Analysis & Target Generator</p>
-            </div>
-            
-            <div className="flex bg-slate-900 p-1 rounded-lg border border-slate-700 text-xs">
-              <button 
-                onClick={() => setMode('log')}
-                className={`px-3 py-1.5 rounded-md font-semibold transition ${mode === 'log' ? 'bg-emerald-500 text-slate-950' : 'text-slate-400 hover:text-white'}`}>
-                Splits Log
-              </button>
-              <button 
-                onClick={() => setMode('target')}
-                className={`px-3 py-1.5 rounded-md font-semibold transition ${mode === 'target' ? 'bg-emerald-500 text-slate-950' : 'text-slate-400 hover:text-white'}`}>
-                Target Generator
-              </button>
-            </div>
-          </div>
-
-          {/* Setup Controls */}
-          <div className="bg-slate-800 p-4 rounded-xl border border-slate-700 grid grid-cols-2 gap-3 text-xs">
-            <div>
-              <label className="text-slate-400 block mb-1">Event Distance</label>
-              <select 
-                value={selectedDistance.name}
-                onChange={(e) => {
-                  const dist = DISTANCES.find(d => d.name === e.target.value);
-                  setSelectedDistance(dist);
-                  setLapDist(dist.defaultLap);
-                }}
-                className="w-full bg-slate-900 border border-slate-700 rounded-lg p-2 text-white">
-                {DISTANCES.map(d => <option key={d.name} value={d.name}>{d.name}</option>)}
-              </select>
-            </div>
-
-            <div>
-              <label className="text-slate-400 block mb-1">Interval Distance</label>
-              <select 
-                value={lapDist}
-                onChange={(e) => setLapDist(Number(e.target.value))}
-                className="w-full bg-slate-900 border border-slate-700 rounded-lg p-2 text-white">
-                <option value={100}>100m</option>
-                <option value={200}>200m</option>
-                <option value={400}>400m</option>
-              </select>
-            </div>
-          </div>
-
-          {/* MODE 1: LOG & ANALYZE */}
-          {mode === 'log' && (
-            <div className="space-y-4">
-              {/* Stat Summary Cards */}
-              <div className="grid grid-cols-3 gap-2 text-center">
-                <div className="bg-slate-800 p-3 rounded-xl border border-slate-700">
-                  <div className="text-slate-400 text-xs">Total Time</div>
-                  <div className="text-lg font-bold font-mono text-emerald-400 mt-
+    // Initial render
+    render();
+  </script>
+</body>
+</html>
