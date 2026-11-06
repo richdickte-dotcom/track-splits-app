@@ -57,7 +57,7 @@
         
         <div class="flex justify-center gap-2 text-xs">
           <button type="button" id="swStartBtn" onclick="toggleStopwatch()" class="bg-emerald-500 hover:bg-emerald-600 text-slate-950 font-bold px-4 py-2 rounded-lg transition w-24">Start</button>
-          <button type="button" id="swLapBtn" onclick="lapStopwatch()" disabled class="bg-indigo-600 hover:bg-indigo-500 text-white font-bold px-4 py-2 rounded-lg transition opacity-50 cursor-not-allowed w-24">Lap & Log</button>
+          <button type="button" id="swLapBtn" onclick="lapStopwatch()" disabled class="bg-indigo-600 text-white font-bold px-4 py-2 rounded-lg transition opacity-50 cursor-not-allowed w-24">Lap & Log</button>
           <button type="button" onclick="resetStopwatch()" class="bg-slate-700 hover:bg-slate-600 text-slate-200 font-semibold px-3 py-2 rounded-lg transition">Reset</button>
         </div>
       </div>
@@ -120,26 +120,4 @@
               <th class="p-3">Cumulative</th>
             </tr>
           </thead>
-          <tbody id="targetTableBody" class="divide-y divide-slate-700/50 font-mono"></tbody>
-        </table>
-      </div>
-    </div>
-
-  </div>
-
-  <script>
-    let splits = [];
-    
-    // Stopwatch Variables
-    let swTimer = null;
-    let swStartTime = 0;
-    let swElapsedTime = 0;
-    let swLastLapTime = 0;
-    let swIsRunning = false;
-
-    function parseToSec(str) {
-      if (!str) return 0;
-      const clean = str.trim();
-      if (clean.includes(':')) {
-        const parts = clean.split(':');
-        const mins = parseFloat(parts[0]) || 0
+          <tbody id="targetTableBody"
