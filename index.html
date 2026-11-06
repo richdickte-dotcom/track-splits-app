@@ -49,6 +49,20 @@
 
     <!-- TAB 1: SPLITS LOG & ANALYZER -->
     <div id="modeLog" class="space-y-4">
+      
+      <!-- Stopwatch Panel -->
+      <div class="bg-slate-800 p-4 rounded-xl border border-slate-700 text-center space-y-3">
+        <div class="text-xs text-slate-400 font-semibold uppercase tracking-wider">Live Stopwatch</div>
+        <div id="swDisplay" class="text-4xl font-extrabold font-mono text-emerald-400">00:00.0</div>
+        
+        <div class="flex justify-center gap-2 text-xs">
+          <button type="button" id="swStartBtn" onclick="toggleStopwatch()" class="bg-emerald-500 hover:bg-emerald-600 text-slate-950 font-bold px-4 py-2 rounded-lg transition w-24">Start</button>
+          <button type="button" id="swLapBtn" onclick="lapStopwatch()" disabled class="bg-indigo-600 hover:bg-indigo-500 text-white font-bold px-4 py-2 rounded-lg transition opacity-50 cursor-not-allowed w-24">Lap & Log</button>
+          <button type="button" onclick="resetStopwatch()" class="bg-slate-700 hover:bg-slate-600 text-slate-200 font-semibold px-3 py-2 rounded-lg transition">Reset</button>
+        </div>
+      </div>
+
+      <!-- Stats Summary -->
       <div class="grid grid-cols-3 gap-2 text-center">
         <div class="bg-slate-800 p-3 rounded-xl border border-slate-700">
           <div class="text-slate-400 text-xs">Total Time</div>
@@ -64,11 +78,13 @@
         </div>
       </div>
 
+      <!-- Manual Input Form -->
       <form onsubmit="addSplit(event)" class="flex gap-2">
-        <input type="text" id="timeInput" placeholder="Enter lap time (e.g. 68.5 or 1:08.5)" class="flex-1 bg-slate-800 border border-slate-700 rounded-xl px-3 py-2.5 text-sm text-white focus:outline-none focus:border-emerald-500">
+        <input type="text" id="timeInput" placeholder="Manual entry (e.g. 68.5 or 1:08.5)" class="flex-1 bg-slate-800 border border-slate-700 rounded-xl px-3 py-2.5 text-sm text-white focus:outline-none focus:border-emerald-500">
         <button type="submit" class="bg-emerald-500 hover:bg-emerald-600 font-bold px-4 py-2.5 rounded-xl text-slate-950 text-sm transition">Add Split</button>
       </form>
 
+      <!-- Split Table & Pace Bars -->
       <div class="bg-slate-800 p-4 rounded-xl border border-slate-700">
         <div class="flex justify-between items-center mb-3">
           <h3 class="font-semibold text-sm text-slate-200">Recorded Laps Analysis</h3>
@@ -113,14 +129,17 @@
 
   <script>
     let splits = [];
+    
+    // Stopwatch Variables
+    let swTimer = null;
+    let swStartTime = 0;
+    let swElapsedTime = 0;
+    let swLastLapTime = 0;
+    let swIsRunning = false;
 
     function parseToSec(str) {
       if (!str) return 0;
       const clean = str.trim();
       if (clean.includes(':')) {
         const parts = clean.split(':');
-        const mins = parseFloat(parts[0]) || 0;
-        const secs = parseFloat(parts[1]) || 0;
-        return (mins * 60) + secs;
-      }
-      return parseFloat(clean)
+        const mins = parseFloat(parts[0]) || 0
