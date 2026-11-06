@@ -3,178 +3,292 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Track Splits Calculator</title>
-  <style>
-    body {
-      font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
-      background-color: #0f172a;
-      color: #ffffff;
-      margin: 0;
-      padding: 20px;
-      display: flex;
-      justify-content: center;
-    }
-    .container {
-      width: 100%;
-      max-width: 440px;
-    }
-    h1 {
-      color: #34d399;
-      text-align: center;
-      margin-bottom: 20px;
-    }
-    .stats {
-      display: grid;
-      grid-template-columns: 1fr 1fr;
-      gap: 10px;
-      margin-bottom: 20px;
-    }
-    .stat-box {
-      background: #1e293b;
-      padding: 12px;
-      border-radius: 8px;
-      border: 1px solid #334155;
-      text-align: center;
-    }
-    .stat-val { font-size: 20px; font-weight: bold; color: #6ee7b7; font-family: monospace; }
-    .stat-lbl { font-size: 12px; color: #94a3b8; }
-    .input-group {
-      display: flex;
-      gap: 8px;
-      margin-bottom: 20px;
-    }
-    input {
-      flex: 1;
-      padding: 12px;
-      border-radius: 8px;
-      border: 1px solid #334155;
-      background-color: #1e293b;
-      color: white;
-      font-size: 16px;
-    }
-    input:focus { outline: none; border-color: #34d399; }
-    button {
-      background-color: #34d399;
-      color: #0f172a;
-      font-weight: bold;
-      border: none;
-      padding: 12px 18px;
-      border-radius: 8px;
-      font-size: 16px;
-      cursor: pointer;
-    }
-    .btn-reset {
-      background-color: #ef4444;
-      color: white;
-      width: 100%;
-      margin-top: 15px;
-    }
-    .card {
-      background-color: #1e293b;
-      border: 1px solid #334155;
-      border-radius: 8px;
-      padding: 16px;
-    }
-    ul { list-style: none; padding: 0; margin: 0; }
-    li {
-      display: flex;
-      justify-content: space-between;
-      padding: 10px 0;
-      border-bottom: 1px solid #334155;
-    }
-    li:last-child { border-bottom: none; }
-    .lap-num { color: #94a3b8; }
-    .lap-time { font-family: monospace; font-weight: bold; color: #6ee7b7; }
-  </style>
+  <title>Track & Field Split Times Calculator</title>
+  <script src="https://cdn.tailwindcss.com"></script>
+  <script src="https://unpkg.com/react@18/umd/react.production.min.js"></script>
+  <script src="https://unpkg.com/react-dom@18/umd/react-dom.production.min.js"></script>
+  <script src="https://unpkg.com/@babel/standalone/babel.min.js"></script>
 </head>
-<body>
-  <div class="container">
-    <h1>⏱️ Track Splits</h1>
-    
-    <div class="stats">
-      <div class="stat-box">
-        <div class="stat-val" id="totalTime">00:00.0</div>
-        <div class="stat-lbl">Total Elapsed Time</div>
-      </div>
-      <div class="stat-box">
-        <div class="stat-val" id="avgLap">--</div>
-        <div class="stat-lbl">Average Lap Pace</div>
-      </div>
-    </div>
+<body class="bg-slate-900 text-slate-100 min-h-screen p-3 md:p-6">
+  <div id="root"></div>
 
-    <form onsubmit="addSplit(event)" class="input-group">
-      <input type="text" id="timeInput" placeholder="Lap time (e.g. 68.5 or 1:08.5)">
-      <button type="submit">Add</button>
-    </form>
+  <script type="text/babel">
+    const { useState, useMemo } = React;
 
-    <div class="card">
-      <h3 style="margin-top:0;">Recorded Laps</h3>
-      <ul id="splitsList">
-        <li style="color:#94a3b8;">No split times entered yet.</li>
-      </ul>
-    </div>
+    const DISTANCES = [
+      { name: '400m', meters: 400, defaultLap: 100 },
+      { name: '800m', meters: 800, defaultLap: 200 },
+      { name: '1500m', meters: 1500, defaultLap: 400 },
+      { name: '1600m / 1 Mile', meters: 1609.34, defaultLap: 400 },
+      { name: '3000m', meters: 3000, defaultLap: 400 },
+      { name: '5000m / 5K', meters: 5000, defaultLap: 400 },
+      { name: '10,000m / 10K', meters: 10000, defaultLap: 400 }
+    ];
 
-    <button onclick="resetAll()" class="btn-reset">Clear All Splits</button>
-  </div>
-
-  <script>
-    let splits = [];
-
-    function parseToSeconds(str) {
-      if (str.includes(':')) {
-        const parts = str.split(':');
-        return (parseFloat(parts[0]) * 60) + parseFloat(parts[1]);
-      }
-      return parseFloat(str);
-    }
-
-    function formatTime(sec) {
-      const m = Math.floor(sec / 60);
-      const s = (sec % 60).toFixed(1);
-      const sFormatted = s < 10 ? '0' + s : s;
-      return m > 0 ? `${m}:${sFormatted}` : `${s}s`;
-    }
-
-    function addSplit(e) {
-      e.preventDefault();
-      const input = document.getElementById('timeInput');
-      const val = input.value.trim();
-      const sec = parseToSeconds(val);
+    function App() {
+      const [mode, setMode] = useState('log'); // 'log' or 'target'
+      const [selectedDistance, setSelectedDistance] = useState(DISTANCES[2]);
+      const [lapDist, setLapDist] = useState(400);
+      const [splits, setSplits] = useState([]);
+      const [currentInput, setCurrentInput] = useState('');
       
-      if (isNaN(sec) || sec <= 0) return;
+      // Target Mode state
+      const [targetTimeStr, setTargetTimeStr] = useState('04:15.0');
+      const [paceStrategy, setPaceStrategy] = useState('even'); // 'even', 'negative', 'positive'
 
-      splits.push({ text: val, sec: sec });
-      input.value = '';
-      render();
+      // Helper calculations
+      const parseTimeToSec = (str) => {
+        if (!str) return 0;
+        const parts = str.trim().split(':');
+        if (parts.length === 2) {
+          return parseFloat(parts[0]) * 60 + parseFloat(parts[1]);
+        }
+        return parseFloat(parts[0]) || 0;
+      };
+
+      const formatSecToTime = (sec) => {
+        if (isNaN(sec) || sec <= 0) return '00:00.0';
+        const mins = Math.floor(sec / 60);
+        const secs = (sec % 60).toFixed(1);
+        const paddedSecs = secs < 10 ? '0' + secs : secs;
+        return mins > 0 ? `${mins}:${paddedSecs}` : `${secs}s`;
+      };
+
+      const handleAddSplit = (e) => {
+        e.preventDefault();
+        const sec = parseTimeToSec(currentInput);
+        if (sec <= 0) return;
+        setSplits([...splits, { text: currentInput, sec }]);
+        setCurrentInput('');
+      };
+
+      const totalSplitsSec = useMemo(() => splits.reduce((a, b) => a + b.sec, 0), [splits]);
+      const avgSplitSec = useMemo(() => splits.length > 0 ? totalSplitsSec / splits.length : 0, [splits, totalSplitsSec]);
+      
+      const fastestLap = useMemo(() => {
+        if (splits.length === 0) return null;
+        return Math.min(...splits.map(s => s.sec));
+      }, [splits]);
+
+      const slowestLap = useMemo(() => {
+        if (splits.length === 0) return null;
+        return Math.max(...splits.map(s => s.sec));
+      }, [splits]);
+
+      // Target splits generator
+      const targetSplits = useMemo(() => {
+        const totalSec = parseTimeToSec(targetTimeStr);
+        if (totalSec <= 0) return [];
+        const totalLaps = Math.ceil(selectedDistance.meters / lapDist);
+        const baseLap = totalSec / totalLaps;
+
+        return Array.from({ length: totalLaps }, (_, i) => {
+          let multiplier = 1;
+          if (paceStrategy === 'negative') {
+            multiplier = 1.04 - (i / (totalLaps - 1 || 1)) * 0.08; // starts 4% slower, ends 4% faster
+          } else if (paceStrategy === 'positive') {
+            multiplier = 0.96 + (i / (totalLaps - 1 || 1)) * 0.08; // starts 4% faster, ends 4% slower
+          }
+          return baseLap * multiplier;
+        });
+      }, [targetTimeStr, selectedDistance, lapDist, paceStrategy]);
+
+      return (
+        <div className="max-w-2xl mx-auto space-y-4 font-sans">
+          {/* Header */}
+          <div className="bg-slate-800 p-4 rounded-xl border border-slate-700 flex flex-wrap justify-between items-center gap-3">
+            <div>
+              <h1 className="text-xl font-bold text-emerald-400 flex items-center gap-2">
+                ⏱️ Track & Field Splits
+              </h1>
+              <p className="text-xs text-slate-400">Analysis & Target Generator</p>
+            </div>
+            
+            <div className="flex bg-slate-900 p-1 rounded-lg border border-slate-700 text-xs">
+              <button 
+                onClick={() => setMode('log')}
+                className={`px-3 py-1.5 rounded-md font-semibold transition ${mode === 'log' ? 'bg-emerald-500 text-slate-950' : 'text-slate-400 hover:text-white'}`}>
+                Splits Log
+              </button>
+              <button 
+                onClick={() => setMode('target')}
+                className={`px-3 py-1.5 rounded-md font-semibold transition ${mode === 'target' ? 'bg-emerald-500 text-slate-950' : 'text-slate-400 hover:text-white'}`}>
+                Target Generator
+              </button>
+            </div>
+          </div>
+
+          {/* Setup Controls */}
+          <div className="bg-slate-800 p-4 rounded-xl border border-slate-700 grid grid-cols-2 gap-3 text-xs">
+            <div>
+              <label className="text-slate-400 block mb-1">Event Distance</label>
+              <select 
+                value={selectedDistance.name}
+                onChange={(e) => {
+                  const dist = DISTANCES.find(d => d.name === e.target.value);
+                  setSelectedDistance(dist);
+                  setLapDist(dist.defaultLap);
+                }}
+                className="w-full bg-slate-900 border border-slate-700 rounded-lg p-2 text-white">
+                {DISTANCES.map(d => <option key={d.name} value={d.name}>{d.name}</option>)}
+              </select>
+            </div>
+
+            <div>
+              <label className="text-slate-400 block mb-1">Interval Distance</label>
+              <select 
+                value={lapDist}
+                onChange={(e) => setLapDist(Number(e.target.value))}
+                className="w-full bg-slate-900 border border-slate-700 rounded-lg p-2 text-white">
+                <option value={100}>100m</option>
+                <option value={200}>200m</option>
+                <option value={400}>400m</option>
+              </select>
+            </div>
+          </div>
+
+          {/* MODE 1: LOG & ANALYZE */}
+          {mode === 'log' && (
+            <div className="space-y-4">
+              {/* Stat Summary Cards */}
+              <div className="grid grid-cols-3 gap-2 text-center">
+                <div className="bg-slate-800 p-3 rounded-xl border border-slate-700">
+                  <div className="text-slate-400 text-xs">Total Time</div>
+                  <div className="text-lg font-bold font-mono text-emerald-400 mt-0.5">
+                    {formatSecToTime(totalSplitsSec)}
+                  </div>
+                </div>
+                <div className="bg-slate-800 p-3 rounded-xl border border-slate-700">
+                  <div className="text-slate-400 text-xs">Avg Lap Pace</div>
+                  <div className="text-lg font-bold font-mono text-cyan-400 mt-0.5">
+                    {formatSecToTime(avgSplitSec)}
+                  </div>
+                </div>
+                <div className="bg-slate-800 p-3 rounded-xl border border-slate-700">
+                  <div className="text-slate-400 text-xs">Total Laps</div>
+                  <div className="text-lg font-bold font-mono text-indigo-400 mt-0.5">
+                    {splits.length}
+                  </div>
+                </div>
+              </div>
+
+              {/* Input Form */}
+              <form onSubmit={handleAddSplit} className="flex gap-2">
+                <input 
+                  type="text" 
+                  placeholder="Enter lap time (e.g. 68.5 or 1:08.5)" 
+                  value={currentInput}
+                  onChange={(e) => setCurrentInput(e.target.value)}
+                  className="flex-1 bg-slate-800 border border-slate-700 rounded-xl px-3 py-2.5 text-sm text-white focus:outline-none focus:border-emerald-500"
+                />
+                <button type="submit" className="bg-emerald-500 hover:bg-emerald-600 font-bold px-5 py-2.5 rounded-xl text-slate-950 text-sm transition">
+                  Add Split
+                </button>
+              </form>
+
+              {/* Split List & Visual Bars */}
+              <div className="bg-slate-800 p-4 rounded-xl border border-slate-700">
+                <div className="flex justify-between items-center mb-3">
+                  <h3 className="font-semibold text-sm text-slate-200">Recorded Laps Analysis</h3>
+                  {splits.length > 0 && (
+                    <button onClick={() => setSplits([])} className="text-xs text-rose-400 hover:underline">
+                      Clear All
+                    </button>
+                  )}
+                </div>
+
+                {splits.length === 0 ? (
+                  <p className="text-slate-500 text-xs text-center py-6">Enter split times above to generate pace metrics and visual charts.</p>
+                ) : (
+                  <div className="space-y-3">
+                    {splits.map((s, idx) => {
+                      const isFastest = s.sec === fastestLap;
+                      const isSlowest = s.sec === slowestLap && splits.length > 1;
+                      const barWidth = Math.min(100, Math.max(20, (s.sec / slowestLap) * 100));
+
+                      return (
+                        <div key={idx} className="space-y-1">
+                          <div className="flex justify-between text-xs font-mono">
+                            <span className="text-slate-400">
+                              Lap {idx + 1} ({lapDist * (idx + 1)}m)
+                              {isFastest && <span className="ml-2 text-emerald-400 font-bold text-[10px] bg-emerald-950 px-1.5 py-0.5 rounded border border-emerald-800">⚡ FASTEST</span>}
+                              {isSlowest && <span className="ml-2 text-amber-400 font-bold text-[10px] bg-amber-950 px-1.5 py-0.5 rounded border border-amber-800">SLOWEST</span>}
+                            </span>
+                            <span className="text-emerald-300 font-bold">{s.text} ({formatSecToTime(s.sec)})</span>
+                          </div>
+                          <div className="h-2 w-full bg-slate-900 rounded-full overflow-hidden">
+                            <div 
+                              className={`h-full rounded-full transition-all duration-300 ${isFastest ? 'bg-emerald-400' : isSlowest ? 'bg-amber-400' : 'bg-cyan-500'}`}
+                              style={{ width: `${barWidth}%` }}
+                            />
+                          </div>
+                        </div>
+                      );
+                    })}
+                  </div>
+                )}
+              </div>
+            </div>
+          )}
+
+          {/* MODE 2: TARGET GENERATOR */}
+          {mode === 'target' && (
+            <div className="space-y-4">
+              <div className="bg-slate-800 p-4 rounded-xl border border-slate-700 grid grid-cols-2 gap-3 text-xs">
+                <div>
+                  <label className="text-slate-400 block mb-1">Target Finish Time</label>
+                  <input 
+                    type="text"
+                    value={targetTimeStr}
+                    onChange={(e) => setTargetTimeStr(e.target.value)}
+                    className="w-full bg-slate-900 border border-slate-700 rounded-lg p-2 text-white font-mono"
+                    placeholder="e.g. 04:15.0"
+                  />
+                </div>
+                <div>
+                  <label className="text-slate-400 block mb-1">Pacing Strategy</label>
+                  <select 
+                    value={paceStrategy}
+                    onChange={(e) => setPaceStrategy(e.target.value)}
+                    className="w-full bg-slate-900 border border-slate-700 rounded-lg p-2 text-white">
+                    <option value="even">Even Pacing (Flat)</option>
+                    <option value="negative">Negative Split (Faster finish)</option>
+                    <option value="positive">Positive Split (Fast start)</option>
+                  </select>
+                </div>
+              </div>
+
+              {/* Target Table */}
+              <div className="bg-slate-800 rounded-xl border border-slate-700 overflow-hidden">
+                <table className="w-full text-left text-xs">
+                  <thead className="bg-slate-900/50 text-slate-400 border-b border-slate-700">
+                    <tr>
+                      <th className="p-3">Interval</th>
+                      <th className="p-3">Target Split</th>
+                      <th className="p-3">Cumulative</th>
+                    </tr>
+                  </thead>
+                  <tbody className="divide-y divide-slate-700/50 font-mono">
+                    {targetSplits.map((lapSec, i) => {
+                      const cumSec = targetSplits.slice(0, i + 1).reduce((a, b) => a + b, 0);
+                      return (
+                        <tr key={i} className="hover:bg-slate-700/30">
+                          <td className="p-3 text-slate-400">Lap {i + 1} ({Math.min(lapDist * (i + 1), selectedDistance.meters)}m)</td>
+                          <td className="p-3 text-emerald-400 font-bold">{formatSecToTime(lapSec)}</td>
+                          <td className="p-3 text-cyan-300">{formatSecToTime(cumSec)}</td>
+                        </tr>
+                      );
+                    })}
+                  </tbody>
+                </table>
+              </div>
+            </div>
+          )}
+        </div>
+      );
     }
 
-    function resetAll() {
-      splits = [];
-      render();
-    }
-
-    function render() {
-      const list = document.getElementById('splitsList');
-      if (splits.length === 0) {
-        list.innerHTML = '<li style="color:#94a3b8;">No split times entered yet.</li>';
-        document.getElementById('totalTime').innerText = '00:00.0';
-        document.getElementById('avgLap').innerText = '--';
-        return;
-      }
-
-      const totalSec = splits.reduce((acc, curr) => acc + curr.sec, 0);
-      const avgSec = totalSec / splits.length;
-
-      document.getElementById('totalTime').innerText = formatTime(totalSec);
-      document.getElementById('avgLap').innerText = formatTime(avgSec);
-
-      list.innerHTML = splits.map((s, i) => `
-        <li>
-          <span class="lap-num">Lap ${i + 1}</span>
-          <span class="lap-time">${s.text} (${formatTime(s.sec)})</span>
-        </li>
-      `).join('');
-    }
+    ReactDOM.createRoot(document.getElementById('root')).render(<App />);
   </script>
 </body>
 </html>
